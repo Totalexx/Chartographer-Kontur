@@ -1,7 +1,9 @@
 package ru.totalexx.cartographer;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MimeType;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -41,7 +43,8 @@ public class ImageController {
                               @RequestParam int width,
                               @RequestParam int height
     ) {
-        ImageModel.getImageFragment();
+        byte[] bmp = ImageModel.getImageFragment(id, x, y, width, height);
+        return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.parseMediaType("image/bmp")).body(bmp);
     }
 
     @DeleteMapping("/{id}/")

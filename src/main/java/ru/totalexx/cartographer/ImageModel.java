@@ -6,6 +6,7 @@ import javax.imageio.*;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
@@ -51,7 +52,16 @@ public class ImageModel {
         }
     }
 
-    public static void getImageFragment() {}
+    public static byte[] getImageFragment(String id, int x, int y, int width, int height) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            BufferedImage image = BigBufferedImage.create(new File(path + id + ".png"), BufferedImage.TYPE_INT_RGB);
+            ImageIO.write(image.getSubimage(x, y, width, height), "bmp", outputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return outputStream.toByteArray();
+    }
 
     public static boolean deleteImage(String imageID) {
         File file = new File(path + imageID + ".png");
