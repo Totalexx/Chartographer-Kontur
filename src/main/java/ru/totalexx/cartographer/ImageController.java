@@ -3,7 +3,6 @@ package ru.totalexx.cartographer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MimeType;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -16,23 +15,20 @@ public class ImageController {
     public ResponseEntity createImage(@RequestParam int width,
                                       @RequestParam int height) {
         String imageID = "";
-        try {
-            imageID = ImageModel.createImage(width, height);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        imageID = ImageModel.createImage(width, height);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(imageID);
     }
 
     @PostMapping("/{id}/")
-    public ResponseEntity saveFragment(@PathVariable String id,
+    public ResponseEntity saveFragment(@RequestBody byte[] bmp,
+                                       @PathVariable String id,
                                        @RequestParam int x,
                                        @RequestParam int y,
                                        @RequestParam int width,
                                        @RequestParam int height
     ) {
-        ImageModel.saveImageFragment(id, x, y, width, height);
+        ImageModel.saveImageFragment(bmp, id, x, y, width, height);
         return ResponseEntity.status(HttpStatus.OK).body("");
     }
 
