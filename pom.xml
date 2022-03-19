@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>ru.totalexx</groupId>
 	<artifactId>cartographer</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>cartographer</name>
 	<description>Тестовый проект для стажировки в СКБ Контур</description>
 	<properties>

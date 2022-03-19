@@ -22,7 +22,7 @@ public class ImageModel {
     public static String createImage(int width, int height) throws IOException, InvalidRequestParams {
 
 
-        if (width > 20000 || height > 50000 || width < 0 || height < 0)
+        if (width > 20000 || height > 50000 || width < 1 || height < 1)
             throw new InvalidRequestParams("");
 
         String imageID = UUID.randomUUID().toString();
@@ -63,8 +63,8 @@ public class ImageModel {
                 || y < 0
                 || width > 20000
                 || height > 50000
-                || width < 0
-                || height < 0)
+                || width < 1
+                || height < 1)
             throw new InvalidRequestParams("");
 
 
