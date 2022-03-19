@@ -1,87 +1,190 @@
 package ru.totalexx.cartographer;
 
-import com.pulispace.mc.ui.panorama.util.BigBufferedImage;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.springframework.core.io.InputStreamResource;
+import ru.totalexx.cartographer.exceptions.InvalidRequestParams;
 
-import javax.imageio.*;
-import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.awt.image.Raster;
+import java.io.*;
+import java.util.Properties;
 import java.util.UUID;
 
 public class ImageModel {
 
-    private static final String path = System.getProperty("user.dir") + "\\images\\";
+    private static String imagesDir;
 
-    public static String createImage(int width, int height) {
+    public static String createImage(int width, int height) throws IOException, InvalidRequestParams {
 
-        BufferedImage image = BigBufferedImage.create(width, height, BufferedImage.TYPE_INT_RGB);
+
+        if (width > 20000 || height > 50000 || width < 0 || height < 0)
+            throw new InvalidRequestParams("");
 
         String imageID = UUID.randomUUID().toString();
+        File imageDir = new File(imagesDir + imageID);
+        imageDir.mkdirs();
 
-        try {
-            saveBigBufferedImage(image, imageID);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        File imageParams = new File(imageDir.getPath() + File.separator + "image.properties");
+        imageParams.createNewFile();
+        Properties properties = new Properties();
+        FileOutputStream outputStream = new FileOutputStream(imageParams);
+
+        properties.setProperty("width", String.valueOf(width));
+        properties.setProperty("height", String.valueOf(height));
+        properties.store(outputStream, null);
+        outputStream.close();
 
         return imageID;
     }
 
-    public static void saveImageFragment(byte[] bmp, String imageID, int x, int y, int width, int height) {
-        try {
-            BufferedImage image = BigBufferedImage.create(new File(path + imageID + ".png"), BufferedImage.TYPE_INT_RGB);
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(bmp);
-            BufferedImage fragment = ImageIO.read(inputStream);
+    public static void saveFragment(InputStreamResource bodyStream,
+                                    String imageID,
+                                    int x,
+                                    int y,
+                                    int width,
+                                    int height) throws IOException, InvalidRequestParams {
+        hasImage(imageID);
 
-            Graphics graphics = image.getGraphics();
-            graphics.drawImage(fragment, x, y, width, height, null);
+        String imageDir = imagesDir + imageID + File.separator;
 
-            saveBigBufferedImage(image, imageID);
+        Properties properties = new Properties();
+        File imageParams = new File(imageDir + "image.properties");
+        FileInputStream propertiesInput = new FileInputStream(imageParams);
+        properties.load(propertiesInput);
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (x > Integer.parseInt(properties.getProperty("width"))
+                || x < 0
+                || y > Integer.parseInt(properties.getProperty("height"))
+                || y < 0
+                || width > 20000
+                || height > 50000
+                || width < 0
+                || height < 0)
+            throw new InvalidRequestParams("");
+
+
+        int filename = new File(imageDir).list().length;
+
+        File fragment = new File(imageDir + filename + ".bmp");
+        fragment.createNewFile();
+
+        FileOutputStream imageOutput = new FileOutputStream(fragment);
+        IOUtils.copy(bodyStream.getInputStream(), imageOutput);
+        imageOutput.close();
+
+        ImageInputStream imageInput = ImageIO.createImageInputStream(fragment);
+        ImageReader reader = ImageIO.getImageReaders(imageInput).next();
+        reader.setInput(imageInput, true, true);
+
+        int widthFragment = reader.getWidth(reader.getMinIndex());
+        int heightFragment = reader.getHeight(reader.getMinIndex());
+
+        imageInput.close();
+        reader.dispose();
+
+        if (widthFragment != width || heightFragment != height) {
+            fragment.delete();
+            throw new InvalidRequestParams("");
         }
+
+        properties.setProperty(filename + ".x", String.valueOf(x));
+        properties.setProperty(filename + ".y", String.valueOf(y));
+        properties.setProperty(filename + ".width", String.valueOf(widthFragment));
+        properties.setProperty(filename + ".height", String.valueOf(heightFragment));
+
+        FileOutputStream propertiesOutput = new FileOutputStream(imageParams);
+        properties.store(propertiesOutput, null);
+        propertiesOutput.close();
+
     }
 
-    public static byte[] getImageFragment(String id, int x, int y, int width, int height) {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try {
-            BufferedImage image = BigBufferedImage.create(new File(path + id + ".png"), BufferedImage.TYPE_INT_RGB);
-            BufferedImage subImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    public static byte[] getFragment(String imageID, int x, int y, int width, int height) throws IOException, InvalidRequestParams {
+        hasImage(imageID);
 
-            subImage.setData(image.getData());
-            ImageIO.write(subImage, "bmp", outputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return outputStream.toByteArray();
-    }
+        String imageDir = imagesDir + imageID + File.separator;
 
-    public static boolean deleteImage(String imageID) {
-        File file = new File(path + imageID + ".png");
-        return file.delete();
-    }
+        Properties properties = new Properties();
+        File imageParams = new File(imageDir + "image.properties");
+        FileInputStream propertiesInput = new FileInputStream(imageParams);
+        properties.load(propertiesInput);
 
-    private static void saveBigBufferedImage(BufferedImage image, String imageID) throws IOException {
-        File file = new File(path + imageID + ".png");
-        try (ImageOutputStream out = ImageIO.createImageOutputStream(file)) {
-            ImageTypeSpecifier type = ImageTypeSpecifier.createFromRenderedImage(image);
-            ImageWriter writer = ImageIO.getImageWriters(type, "png").next();
+        if (x >= Integer.parseInt(properties.getProperty("width"))
+                || x < 0
+                || y >= Integer.parseInt(properties.getProperty("height"))
+                || y < 0
+                || width > 5000
+                || height > 5000
+                || width < 1
+                || height < 1)
+            throw new InvalidRequestParams("");
 
-            ImageWriteParam param = writer.getDefaultWriteParam();
-            if (param.canWriteCompressed()) {
-                param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                param.setCompressionQuality(0.0f);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        Rectangle fragmentRect = new Rectangle(x, y, width, height);
+        Rectangle imageRect = new Rectangle(0, 0,
+                Integer.parseInt(properties.getProperty("width")), Integer.parseInt(properties.getProperty("height")));
+        fragmentRect = fragmentRect.intersection(imageRect);
+
+        for (int i = 1; properties.getProperty(i + ".x") != null; i++) {
+
+            int imgX = Integer.parseInt(properties.getProperty(i + ".x"));
+            int imgY = Integer.parseInt(properties.getProperty(i + ".y"));
+            int imgWidth = Integer.parseInt(properties.getProperty(i + ".width"));
+            int imgHeight = Integer.parseInt(properties.getProperty(i + ".height"));
+
+            Rectangle imgRect = new Rectangle(imgX, imgY, imgWidth, imgHeight);
+
+            if (fragmentRect.intersects(imgRect)) {
+                imgRect = imgRect.intersection(fragmentRect);
+                imgRect.setLocation((int)imgRect.getX() - imgX, (int)imgRect.getY() - imgY);
+
+                File fragmentFile = new File(imageDir + i + ".bmp");
+
+                ImageInputStream imageInput = ImageIO.createImageInputStream(fragmentFile);
+                ImageReader reader = ImageIO.getImageReaders(imageInput).next();
+                reader.setInput(imageInput, true, true);
+
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceRegion(imgRect);
+
+                Raster raster = reader.readRaster(0, param);
+
+                imageInput.close();
+                reader.dispose();
+
+                image.getRaster().setRect(imgRect.x + imgX - x, imgRect.y + imgY - y, raster);
             }
-
-            writer.setOutput(out);
-            writer.write(null, new IIOImage(image, null, null), param);
-            writer.dispose();
         }
+
+        propertiesInput.close();
+
+        ByteArrayOutputStream byteOutput = new ByteArrayOutputStream();
+        ImageIO.write(image, "bmp", byteOutput);
+
+        return byteOutput.toByteArray();
     }
 
+    public static void deleteImage(String imageID) throws InvalidRequestParams {
+        File imageDir = new File(imagesDir + imageID);
+        if (!imageDir.exists())
+            throw new InvalidRequestParams("");
+        for (File file : imageDir.listFiles()) {
+            file.delete();
+        }
+        imageDir.delete();
+    }
+
+    public static void hasImage(String imageID) throws InvalidRequestParams {
+        if (!new File(imagesDir + imageID).exists())
+            throw new InvalidRequestParams("Image not found");
+    }
+
+    public static void setImagesDir(String dir) {
+        imagesDir = dir + File.separator + "images" + File.separator;
+    }
 }

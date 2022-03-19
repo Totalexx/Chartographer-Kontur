@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class CartographerApplication {
 
 	public static void main(String[] args) {
+		ImageModel.setImagesDir(args[0]);
 		SpringApplication.run(CartographerApplication.class, args);
 	}
 
