@@ -6,13 +6,13 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>2.5.10</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>ru.totalexx</groupId>
 	<artifactId>cartographer</artifactId>
 	<version>1.0.0</version>
 	<name>cartographer</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Тестовый проект для стажировки в СКБ Контур</description>
 	<properties>
 		<java.version>11</java.version>
 	</properties>
@@ -38,7 +38,6 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 
 	<build>
